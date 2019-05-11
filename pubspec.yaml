@@ -1,0 +1,16 @@
+name: arrow_path
+description: Draw arrows with Path objects easily. Paths can be composited to add arrows to any curve and draw all at once.
+version: 1.0.0
+author: Quentin Le Guennec <quentin@tengio.com>
+homepage: https://github.com/quentinleguennec/flutter-arrow-path.git
+
+environment:
+  sdk: ">=2.1.0 <3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
