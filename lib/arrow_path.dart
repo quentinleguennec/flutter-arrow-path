@@ -21,7 +21,7 @@ class ArrowPath {
   /// This improves the look of the arrow when the end of the curve as a strong curvature.
   /// Can be disabled to save performance when the arrow is flat.
   static Path make({
-    @required Path path,
+    required Path path,
     double tipLength = 15,
     double tipAngle = math.pi * 0.2,
     bool isDoubleSided = false,
@@ -32,9 +32,9 @@ class ArrowPath {
   static Path _make(Path path, double tipLength, double tipAngle,
       bool isDoubleSided, bool isAdjusted) {
     PathMetric lastPathMetric;
-    PathMetric firstPathMetric;
+    PathMetric? firstPathMetric;
     Offset tipVector;
-    Tangent tan;
+    Tangent? tan;
     double adjustmentAngle = 0;
 
     double angle = math.pi - tipAngle;
@@ -45,11 +45,11 @@ class ArrowPath {
 
     tan = lastPathMetric.getTangentForOffset(lastPathMetric.length);
 
-    final Offset originalPosition = tan.position;
+    final Offset originalPosition = tan!.position;
 
     if (isAdjusted && lastPathMetric.length > 10) {
       Tangent tanBefore =
-          lastPathMetric.getTangentForOffset(lastPathMetric.length - 5);
+          lastPathMetric.getTangentForOffset(lastPathMetric.length - 5)!;
       adjustmentAngle = _getAngleBetweenVectors(tan.vector, tanBefore.vector);
     }
 
@@ -62,14 +62,14 @@ class ArrowPath {
     path.relativeLineTo(tipVector.dx, tipVector.dy);
 
     if (isDoubleSided) {
-      tan = firstPathMetric.getTangentForOffset(0);
+      tan = firstPathMetric!.getTangentForOffset(0);
       if (isAdjusted && firstPathMetric.length > 10) {
-        Tangent tanBefore = firstPathMetric.getTangentForOffset(5);
-        adjustmentAngle = _getAngleBetweenVectors(tan.vector, tanBefore.vector);
+        Tangent tanBefore = firstPathMetric.getTangentForOffset(5)!;
+        adjustmentAngle = _getAngleBetweenVectors(tan!.vector, tanBefore.vector);
       }
 
       tipVector =
-          _rotateVector(-tan.vector, angle - adjustmentAngle) * tipLength;
+          _rotateVector(-tan!.vector, angle - adjustmentAngle) * tipLength;
       path.moveTo(tan.position.dx, tan.position.dy);
       path.relativeLineTo(tipVector.dx, tipVector.dy);
 
