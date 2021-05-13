@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
 }
 
 class ExampleApp extends StatefulWidget {
-  ExampleApp({Key key}) : super(key: key);
+  ExampleApp({Key? key}) : super(key: key);
 
   @override
   _ExampleAppState createState() => _ExampleAppState();
