@@ -3,8 +3,6 @@ library arrow_path;
 import 'dart:math' as math;
 import 'dart:ui';
 
-import 'package:flutter/foundation.dart';
-
 class ArrowPath {
   /// Add an arrow to the end of the last drawn curve in the given path.
   ///
@@ -20,6 +18,8 @@ class ArrowPath {
   /// If [isAdjusted] is true (default to true), the tip of the arrow will be rotated (not following the tangent perfectly).
   /// This improves the look of the arrow when the end of the curve as a strong curvature.
   /// Can be disabled to save performance when the arrow is flat.
+  ///
+  /// If the given path is not suitable to draw the arrow head (for example if the path as no length) then the path will be returned unchanged.
   static Path make({
     required Path path,
     double tipLength = 15,
@@ -27,56 +27,73 @@ class ArrowPath {
     bool isDoubleSided = false,
     bool isAdjusted = true,
   }) =>
-      _make(path, tipLength, tipAngle, isDoubleSided, isAdjusted);
+      _make(
+        path: path,
+        tipLength: tipLength,
+        tipAngle: tipAngle,
+        isDoubleSided: isDoubleSided,
+        isAdjusted: isAdjusted,
+      );
 
-  static Path _make(Path path, double tipLength, double tipAngle,
-      bool isDoubleSided, bool isAdjusted) {
-    PathMetric lastPathMetric;
-    PathMetric? firstPathMetric;
-    Offset tipVector;
-    Tangent? tan;
+  static Path _make({
+    required final Path path,
+    required final double tipLength,
+    required final double tipAngle,
+    required final bool isDoubleSided,
+    required final bool isAdjusted,
+  }) {
     double adjustmentAngle = 0;
 
-    double angle = math.pi - tipAngle;
-    lastPathMetric = path.computeMetrics().last;
-    if (isDoubleSided) {
-      firstPathMetric = path.computeMetrics().first;
+    final double angle = math.pi - tipAngle;
+    final List<PathMetric> pathMetrics = path.computeMetrics().toList();
+    if (pathMetrics.isEmpty) {
+      /// This can happen if the path as no length (trying to draw an arrow that is too small, like less than 1 pixel).
+      return path;
     }
 
-    tan = lastPathMetric.getTangentForOffset(lastPathMetric.length);
+    final PathMetric lastPathMetric = pathMetrics.last;
+    final PathMetric? firstPathMetric = isDoubleSided ? pathMetrics.first : null;
 
-    final Offset originalPosition = tan!.position;
+    final Tangent? tangentLastPath = lastPathMetric.getTangentForOffset(lastPathMetric.length);
+
+    if (tangentLastPath == null) {
+      /// This should never happen.
+      return path;
+    }
+
+    final Offset originalPosition = tangentLastPath.position;
 
     if (isAdjusted && lastPathMetric.length > 10) {
-      Tangent tanBefore =
-          lastPathMetric.getTangentForOffset(lastPathMetric.length - 5)!;
-      adjustmentAngle = _getAngleBetweenVectors(tan.vector, tanBefore.vector);
+      final Tangent tanBefore = lastPathMetric.getTangentForOffset(lastPathMetric.length - 5)!;
+      adjustmentAngle = _getAngleBetweenVectors(tangentLastPath.vector, tanBefore.vector);
     }
 
-    tipVector = _rotateVector(tan.vector, angle - adjustmentAngle) * tipLength;
-    path.moveTo(tan.position.dx, tan.position.dy);
+    Offset tipVector;
+
+    tipVector = _rotateVector(tangentLastPath.vector, angle - adjustmentAngle) * tipLength;
+    path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
     path.relativeLineTo(tipVector.dx, tipVector.dy);
 
-    tipVector = _rotateVector(tan.vector, -angle - adjustmentAngle) * tipLength;
-    path.moveTo(tan.position.dx, tan.position.dy);
+    tipVector = _rotateVector(tangentLastPath.vector, -angle - adjustmentAngle) * tipLength;
+    path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
     path.relativeLineTo(tipVector.dx, tipVector.dy);
 
-    if (isDoubleSided) {
-      tan = firstPathMetric!.getTangentForOffset(0);
-      if (isAdjusted && firstPathMetric.length > 10) {
-        Tangent tanBefore = firstPathMetric.getTangentForOffset(5)!;
-        adjustmentAngle = _getAngleBetweenVectors(tan!.vector, tanBefore.vector);
+    if (firstPathMetric != null) {
+      final Tangent? tangentFirstPath = firstPathMetric.getTangentForOffset(0);
+      if (tangentFirstPath != null) {
+        if (isAdjusted && firstPathMetric.length > 10) {
+          final Tangent tanBefore = firstPathMetric.getTangentForOffset(5)!;
+          adjustmentAngle = _getAngleBetweenVectors(tangentFirstPath.vector, tanBefore.vector);
+        }
+
+        tipVector = _rotateVector(-tangentFirstPath.vector, angle - adjustmentAngle) * tipLength;
+        path.moveTo(tangentFirstPath.position.dx, tangentFirstPath.position.dy);
+        path.relativeLineTo(tipVector.dx, tipVector.dy);
+
+        tipVector = _rotateVector(-tangentFirstPath.vector, -angle - adjustmentAngle) * tipLength;
+        path.moveTo(tangentFirstPath.position.dx, tangentFirstPath.position.dy);
+        path.relativeLineTo(tipVector.dx, tipVector.dy);
       }
-
-      tipVector =
-          _rotateVector(-tan!.vector, angle - adjustmentAngle) * tipLength;
-      path.moveTo(tan.position.dx, tan.position.dy);
-      path.relativeLineTo(tipVector.dx, tipVector.dy);
-
-      tipVector =
-          _rotateVector(-tan.vector, -angle - adjustmentAngle) * tipLength;
-      path.moveTo(tan.position.dx, tan.position.dy);
-      path.relativeLineTo(tipVector.dx, tipVector.dy);
     }
 
     path.moveTo(originalPosition.dx, originalPosition.dy);
@@ -92,9 +109,8 @@ class ArrowPath {
   static double _getVectorsDotProduct(Offset vector1, Offset vector2) =>
       vector1.dx * vector2.dx + vector1.dy * vector2.dy;
 
-  // Clamp to avoid rounding issues when the 2 vectors are equal.
-  static double _getAngleBetweenVectors(Offset vector1, Offset vector2) =>
-      math.acos((_getVectorsDotProduct(vector1, vector2) /
-              (vector1.distance * vector2.distance))
-          .clamp(-1.0, 1.0));
+  /// Clamp to avoid rounding issues when the 2 vectors are equal.
+  static double _getAngleBetweenVectors(Offset vector1, Offset vector2) => math.acos(
+        (_getVectorsDotProduct(vector1, vector2) / (vector1.distance * vector2.distance)).clamp(-1.0, 1.0),
+      );
 }
