@@ -25,22 +25,8 @@ class ArrowPath {
     double tipLength = 15,
     double tipAngle = math.pi * 0.2,
     bool isDoubleSided = false,
+    bool reverse = false,
     bool isAdjusted = true,
-  }) =>
-      _make(
-        path: path,
-        tipLength: tipLength,
-        tipAngle: tipAngle,
-        isDoubleSided: isDoubleSided,
-        isAdjusted: isAdjusted,
-      );
-
-  static Path _make({
-    required final Path path,
-    required final double tipLength,
-    required final double tipAngle,
-    required final bool isDoubleSided,
-    required final bool isAdjusted,
   }) {
     double adjustmentAngle = 0;
 
@@ -51,11 +37,9 @@ class ArrowPath {
       return path;
     }
 
+    Offset tipVector;
     final PathMetric lastPathMetric = pathMetrics.last;
-    final PathMetric? firstPathMetric = isDoubleSided ? pathMetrics.first : null;
-
     final Tangent? tangentLastPath = lastPathMetric.getTangentForOffset(lastPathMetric.length);
-
     if (tangentLastPath == null) {
       /// This should never happen.
       return path;
@@ -63,21 +47,22 @@ class ArrowPath {
 
     final Offset originalPosition = tangentLastPath.position;
 
-    if (isAdjusted && lastPathMetric.length > 10) {
-      final Tangent tanBefore = lastPathMetric.getTangentForOffset(lastPathMetric.length - 5)!;
-      adjustmentAngle = _getAngleBetweenVectors(tangentLastPath.vector, tanBefore.vector);
+    if (isDoubleSided || !reverse) {
+      if (isAdjusted && lastPathMetric.length > 10) {
+        final Tangent tanBefore = lastPathMetric.getTangentForOffset(lastPathMetric.length - 5)!;
+        adjustmentAngle = _getAngleBetweenVectors(tangentLastPath.vector, tanBefore.vector);
+      }
+
+      tipVector = _rotateVector(tangentLastPath.vector, angle - adjustmentAngle) * tipLength;
+      path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
+      path.relativeLineTo(tipVector.dx, tipVector.dy);
+
+      tipVector = _rotateVector(tangentLastPath.vector, -angle - adjustmentAngle) * tipLength;
+      path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
+      path.relativeLineTo(tipVector.dx, tipVector.dy);
     }
 
-    Offset tipVector;
-
-    tipVector = _rotateVector(tangentLastPath.vector, angle - adjustmentAngle) * tipLength;
-    path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
-    path.relativeLineTo(tipVector.dx, tipVector.dy);
-
-    tipVector = _rotateVector(tangentLastPath.vector, -angle - adjustmentAngle) * tipLength;
-    path.moveTo(tangentLastPath.position.dx, tangentLastPath.position.dy);
-    path.relativeLineTo(tipVector.dx, tipVector.dy);
-
+    final PathMetric? firstPathMetric = (isDoubleSided || reverse) ? pathMetrics.first : null;
     if (firstPathMetric != null) {
       final Tangent? tangentFirstPath = firstPathMetric.getTangentForOffset(0);
       if (tangentFirstPath != null) {
