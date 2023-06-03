@@ -1,0 +1,38 @@
+include: package:flutter_lints/flutter.yaml
+
+# Additional information about this file can be found at
+# https://dart.dev/guides/language/analysis-options
+# List of lints:
+# https://dart.dev/tools/linter-rules
+
+analyzer:
+  exclude: [build/**]
+  language:
+    strict-casts: true
+    strict-inference: true
+    strict-raw-types: true
+  plugins:
+    - dart_code_metrics
+
+linter:
+  rules:
+    always_declare_return_types: true
+    prefer_single_quotes: true
+    only_throw_errors: true
+    cancel_subscriptions: true
+    close_sinks: true
+    prefer_final_fields: true
+    prefer_final_locals: true
+    prefer_final_in_for_each: true
+    use_build_context_synchronously: true
+    await_only_futures: true
+    unawaited_futures: true
+    always_specify_types: false
+    avoid_function_literals_in_foreach_calls: false
+
+dart_code_metrics:
+  metrics-exclude:
+    - test/**
+  rules:
+    - prefer-trailing-comma
+    - no-equal-then-else

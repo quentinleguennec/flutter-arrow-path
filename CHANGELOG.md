@@ -1,3 +1,13 @@
+## [3.1.0] - 2023-06-02
+
+* *DEPRECATED* Deprecated ArrowPath.make(), use ArrowPath.addTip() instead.
+* Added ArrowPath.addTip(), which is the same as ArrowPath.make() but without `isDoubleSided` and with the new `isBackward` argument.
+  This will allow more control on what side the arrow should be added.
+* Updated README to add migration instructions.
+* Updated for Flutter 3.10 and Dart 3.
+* Update Example app.
+* Update License wording (same license).
+
 ## [3.0.0] - 2022-07-18
 
 * *(Potentially) Breaking change:* Updated to AndroidX.
